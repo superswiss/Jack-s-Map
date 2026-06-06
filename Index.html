@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Kingdom Treasure Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=UnifrakturMaguntia&family=Cinzel:wght@400;700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment-light: #f5e6c8;
+            --parchment-mid: #e0cc9e;
+            --parchment-dark: #c9b47a;
+            --ink: #2a1810;
+            --brown: #5a3825;
+            --gold: #c8960c;
+            --red: #8b0000;
+            --castle-blue: #6b8cba;
+            --land-green: #7aab5c;
+            --land-tan: #c9a96e;
+            --water-blue: #6baed6;
+            --path-cream: #e8d4a0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: radial-gradient(ellipse at center, #0d0705 0%, #1a0a06 100%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        .page {
+            max-width: 900px;
+            width: 100%;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(255,235,180,0.18) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 80%, rgba(180,120,50,0.12) 0%, transparent 50%),
+                linear-gradient(160deg, #f0ddb0 0%, #e4cc96 40%, #d8c082 70%, #ccb474 100%);
+            padding: 50px 45px 40px;
+            border: 10px solid var(--brown);
+            box-shadow:
+                0 0 0 3px var(--gold),
+                0 0 0 6px var(--brown),
+                0 0 80px rgba(0,0,0,0.95),
+                inset 0 0 120px rgba(61,40,23,0.18);
+            position: relative;
+            transform: rotate(-0.3deg);
+        }
+
+        /* Aged paper texture overlay */
+        .page::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        /* Coffee/water stains */
+        .stain {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(ellipse, rgba(100,60,20,0.12) 0%, transparent 70%);
+        }
+        .s1 { width:160px; height:120px; top:8%; left:5%; transform:rotate(15deg); }
+        .s2 { width:90px; height:110px; top:60%; right:5%; transform:rotate(-20deg); }
+        .s3 { width:70px; height:70px; bottom:12%; left:20%; }
+
+        /* Corner ornaments */
+        .corner {
+            position: absolute;
+            width: 55px; height: 55px;
+            opacity: 0.55;
+        }
+        .corner svg { width: 100%; height: 100%; }
+        .c-tl { top: 18px; left: 18px; }
+        .c-tr { top: 18px; right: 18px; transform: scaleX(-1); }
+        .c-bl { bottom: 18px; left: 18px; transform: scaleY(-1); }
+        .c-br { bottom: 18px; right: 18px; transform: scale(-1); }
+
+        /* Header */
+        .map-title {
+            text-align: center;
+            font-family: 'UnifrakturMaguntia', cursive;
+            font-size: 3.2em;
+            color: var(--ink);
+            text-shadow: 3px 3px 0 rgba(90,56,37,0.25), 5px 5px 12px rgba(0,0,0,0.15);
+            margin-bottom: 4px;
+            line-height: 1.1;
+        }
+        .map-subtitle {
+            text-align: center;
+            font-size: 0.85em;
+            color: var(--brown);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+            font-weight: 400;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto 28px;
+            max-width: 500px;
+        }
+        .divider-line {
+            flex: 1;
+            height: 1.5px;
+            background: linear-gradient(to right, transparent, var(--brown), transparent);
+            opacity: 0.6;
+        }
+        .divider-icon { color: var(--gold); font-size: 1.1em; opacity: 0.8; }
+
+        /* Map SVG wrapper */
+        .map-frame {
+            position: relative;
+            border: 4px solid var(--brown);
+            padding: 8px;
+            background: var(--parchment-mid);
+            box-shadow: inset 0 0 30px rgba(61,40,23,0.15), 0 4px 16px rgba(0,0,0,0.25);
+            margin-bottom: 28px;
+        }
+        .map-frame::before {
+            content: '';
+            position: absolute; inset: 4px;
+            border: 1.5px dashed rgba(90,56,37,0.3);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .compass-wrap {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            width: 18px;
+            height: 18px;
+            z-index: 20;
+        }
+
+        /* Legend */
+        .legend-box {
+            border: 2.5px double var(--brown);
+            background: linear-gradient(135deg, rgba(240,221,176,0.97), rgba(220,204,158,0.97));
+            padding: 18px 22px;
+            box-shadow: inset 0 0 20px rgba(90,56,37,0.08), 0 3px 10px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .legend-box h3 {
+            font-family: 'Pirata One', cursive;
+            font-size: 1.6em;
+            color: var(--ink);
+            text-align: center;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 24px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.82em;
+            color: var(--brown);
+        }
+        .legend-swatch {
+            width: 20px; height: 14px;
+            border: 1px solid rgba(90,56,37,0.4);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        /* Footer coords */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.82em;
+            color: var(--brown);
+            font-style: italic;
+            letter-spacing: 1px;
+            line-height: 1.8;
+        }
+
+        /* Track button */
+        #track-btn {
+            display: block;
+            margin: 16px auto 0;
+            padding: 13px 32px;
+            font-family: 'Cinzel', serif;
+            font-size: 1em;
+            color: var(--parchment-light);
+            background: linear-gradient(135deg, #7b3f1e 0%, #4a2510 100%);
+            border: 2px solid var(--gold);
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            transition: all 0.25s ease;
+        }
+        #track-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.45); }
+        #track-btn.tracking {
+            background: linear-gradient(135deg, #7b1e1e 0%, #4a1010 100%);
+            animation: btnPulse 2s infinite;
+        }
+        @keyframes btnPulse {
+            0%,100% { box-shadow: 0 4px 14px rgba(180,30,30,0.4); }
+            50% { box-shadow: 0 4px 24px rgba(180,30,30,0.8); }
+        }
+
+        /* Distance HUD */
+        #hud {
+            display: none;
+            position: fixed;
+            top: 18px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20,10,5,0.96);
+            color: var(--gold);
+            padding: 14px 26px;
+            border: 2px solid var(--gold);
+            font-family: 'Pirata One', cursive;
+            font-size: 1.25em;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+            white-space: nowrap;
+        }
+        #hud .hud-sub { font-size: 0.65em; color: var(--parchment-mid); font-family: 'Cinzel', serif; display: block; margin-top: 3px; }
+        #hud.found { animation: foundPulse 1s infinite; }
+        @keyframes foundPulse {
+            0%,100% { border-color: var(--gold); }
+            50% { border-color: #ff6; box-shadow: 0 0 30px rgba(255,220,0,0.5); }
+        }
+
+        /* X animation */
+        .treasure-x { cursor: pointer; }
+        .treasure-x .x-glow { animation: xGlow 2.5s ease-in-out infinite; }
+        @keyframes xGlow {
+            0%,100% { opacity: 0.25; r: 22px; }
+            50% { opacity: 0.5; r: 30px; }
+        }
+        .x-sparks circle { animation: spark 2s ease-in-out infinite; }
+        .x-sparks circle:nth-child(2) { animation-delay: 0.5s; }
+        .x-sparks circle:nth-child(3) { animation-delay: 1s; }
+        .x-sparks circle:nth-child(4) { animation-delay: 1.5s; }
+        @keyframes spark {
+            0%,100% { opacity: 1; r: 3; }
+            50% { opacity: 0.3; r: 2; }
+        }
+
+        /* Path dash animation */
+        .dash-path { animation: dashMove 25s linear infinite; }
+        @keyframes dashMove { to { stroke-dashoffset: -800; } }
+
+        /* Fireworks / castle sparkle */
+        .castle-shine { animation: castleShine 3s ease-in-out infinite; }
+        @keyframes castleShine {
+            0%,100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Distance HUD -->
+<div id="hud">
+    <span id="hud-dist">Searching…</span>
+    <span class="hud-sub" id="hud-acc"></span>
+</div>
+
+<div class="page">
+    <div class="stain s1"></div>
+    <div class="stain s2"></div>
+    <div class="stain s3"></div>
+
+    <!-- Corner SVG ornaments -->
+    <div class="corner c-tl"><svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 55 L5 5 L55 5" stroke="#5a3825" stroke-width="2.5" fill="none"/>
+        <path d="M5 5 Q20 5 20 20 Q20 35 35 35 Q50 35 50 50" stroke="#5a3825" stroke-width="1.2" fill="none" stroke-dasharray="3,3"/>
+        <circle cx="5" cy="5" r="4" fill="#c8960c" opacity="0.7"/>
+    </svg></div>
+    <div class="corner c-tr"><svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 55 L5 5 L55 5" stroke="#5a3825" stroke-width="2.5" fill="none"/>
+        <circle cx="5" cy="5" r="4" fill="#c8960c" opacity="0.7"/>
+    </svg></div>
+    <div class="corner c-bl"><svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 55 L5 5 L55 5" stroke="#5a3825" stroke-width="2.5" fill="none"/>
+        <circle cx="5" cy="5" r="4" fill="#c8960c" opacity="0.7"/>
+    </svg></div>
+    <div class="corner c-br"><svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 55 L5 5 L55 5" stroke="#5a3825" stroke-width="2.5" fill="none"/>
+        <circle cx="5" cy="5" r="4" fill="#c8960c" opacity="0.7"/>
+    </svg></div>
+
+    <h1 class="map-title">✦ Magic Kingdom ✦</h1>
+    <p class="map-subtitle">Most Enchanted Realm · Orlando, Florida</p>
+    <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-icon">⚜</span>
+        <div class="divider-line"></div>
+    </div>
+
+    <div class="map-frame">
+        <svg id="mkmap" viewBox="0 0 800 620" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#eedcac"/>
+                    <stop offset="100%" stop-color="#d4c080"/>
+                </radialGradient>
+                <pattern id="crosshatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="12" stroke="#b8a05a" stroke-width="0.4" opacity="0.3"/>
+                </pattern>
+                <filter id="parchment-shadow" x="-5%" y="-5%" width="110%" height="110%">
+                    <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#5a3825" flood-opacity="0.25"/>
+                </filter>
+            </defs>
+
+            <!-- Background -->
+            <rect width="800" height="620" fill="url(#bg-grad)"/>
+            <rect width="800" height="620" fill="url(#crosshatch)" opacity="0.4"/>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- OUTER PARK BOUNDARY -->
+            <!-- ═══════════════════════════════════ -->
+            <ellipse cx="400" cy="300" rx="340" ry="270"
+                     fill="#ddd0a0" stroke="#5a3825" stroke-width="3" opacity="0.5"/>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- MOAT / WATER around castle area -->
+            <!-- ═══════════════════════════════════ -->
+            <ellipse cx="400" cy="270" rx="90" ry="70"
+                     fill="#8ec4de" stroke="#4a7090" stroke-width="1.5" opacity="0.5"/>
+
+            <!-- Rivers of America (Frontierland side) -->
+            <path d="M 155 200 Q 140 250 145 310 Q 150 360 170 390 Q 200 420 230 410 Q 210 380 200 340 Q 195 290 200 250 Q 205 210 195 190 Z"
+                  fill="#8ec4de" stroke="#4a7090" stroke-width="1.5" opacity="0.65"/>
+            <text x="160" y="305" font-family="Cinzel" font-size="9" fill="#4a7090" text-anchor="middle" transform="rotate(-75,160,305)" opacity="0.8">Rivers of America</text>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- LANDS (colored zones) -->
+            <!-- ═══════════════════════════════════ -->
+
+            <!-- Main Street USA (bottom center) -->
+            <rect x="340" y="460" width="120" height="110"
+                  fill="#e8d4a0" stroke="#8b6914" stroke-width="1.5" rx="4" opacity="0.85"/>
+            <text x="400" y="528" font-family="Pirata One" font-size="11.5" fill="#5a3010" text-anchor="middle">Main Street</text>
+            <text x="400" y="543" font-family="Pirata One" font-size="9.5" fill="#5a3010" text-anchor="middle">U.S.A.</text>
+
+            <!-- Tomorrowland (right) -->
+            <path d="M 520 350 Q 580 320 640 330 Q 700 340 710 390 Q 700 440 650 460 Q 590 470 540 450 Q 510 430 510 390 Z"
+                  fill="#b0c4d8" stroke="#4a6080" stroke-width="1.5" opacity="0.8"/>
+            <text x="615" y="403" font-family="Pirata One" font-size="12.5" fill="#2a3a50" text-anchor="middle">Tomorrow-</text>
+            <text x="615" y="418" font-family="Pirata One" font-size="12.5" fill="#2a3a50" text-anchor="middle">land</text>
+
+            <!-- Adventureland (left lower) -->
+            <path d="M 155 390 Q 160 420 190 440 Q 230 460 270 455 Q 310 445 320 420 Q 325 390 310 370 Q 290 350 260 350 Q 220 348 195 360 Q 170 370 155 390 Z"
+                  fill="#7aab5c" stroke="#3a6020" stroke-width="1.5" opacity="0.8"/>
+            <text x="238" y="406" font-family="Pirata One" font-size="12" fill="#1a3010" text-anchor="middle">Adventure-</text>
+            <text x="238" y="421" font-family="Pirata One" font-size="12" fill="#1a3010" text-anchor="middle">land</text>
+
+            <!-- Frontierland (upper left) -->
+            <path d="M 160 210 Q 170 190 200 185 Q 235 180 265 195 Q 285 210 290 240 Q 295 270 280 295 Q 260 315 230 318 Q 200 318 180 300 Q 158 278 158 250 Z"
+                  fill="#c9a96e" stroke="#7a5020" stroke-width="1.5" opacity="0.8"/>
+            <text x="225" y="253" font-family="Pirata One" font-size="12.5" fill="#3a2010" text-anchor="middle">Frontier-</text>
+            <text x="225" y="268" font-family="Pirata One" font-size="12.5" fill="#3a2010" text-anchor="middle">land</text>
+
+            <!-- Liberty Square (upper left, between Frontierland and castle) -->
+            <path d="M 285 245 Q 305 225 335 230 Q 360 235 370 255 Q 375 275 360 295 Q 340 310 315 308 Q 292 305 283 285 Z"
+                  fill="#d4b896" stroke="#6a4820" stroke-width="1.5" opacity="0.8"/>
+            <text x="328" y="267" font-family="Pirata One" font-size="10" fill="#3a2010" text-anchor="middle">Liberty</text>
+            <text x="328" y="280" font-family="Pirata One" font-size="10" fill="#3a2010" text-anchor="middle">Square</text>
+
+            <!-- Fantasyland (top, behind castle) -->
+            <path d="M 290 130 Q 340 100 400 95 Q 460 100 510 130 Q 545 155 545 190 Q 540 225 510 240 Q 460 255 400 258 Q 340 255 292 238 Q 264 223 262 190 Z"
+                  fill="#c8a8d0" stroke="#6a4880" stroke-width="1.5" opacity="0.8"/>
+            <text x="400" y="175" font-family="Pirata One" font-size="13" fill="#3a1850" text-anchor="middle">Fantasyland</text>
+
+            <!-- Storybook Circus / Enchanted Forest label -->
+            <text x="400" y="192" font-family="Cinzel" font-size="8.5" fill="#3a1850" text-anchor="middle" opacity="0.75">(Seven Dwarfs · Peter Pan · Small World)</text>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- CENTRAL HUB -->
+            <!-- ═══════════════════════════════════ -->
+            <circle cx="400" cy="350" r="55"
+                    fill="#e8d4a0" stroke="#8b6914" stroke-width="2" opacity="0.7"/>
+            <text x="400" y="345" font-family="Pirata One" font-size="10" fill="#5a3010" text-anchor="middle">Central</text>
+            <text x="400" y="358" font-family="Pirata One" font-size="10" fill="#5a3010" text-anchor="middle">Hub</text>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- CINDERELLA CASTLE (stylized) -->
+            <!-- ═══════════════════════════════════ -->
+            <g class="castle-shine" filter="url(#parchment-shadow)">
+                <!-- Castle base -->
+                <rect x="378" y="258" width="44" height="55" fill="#b8c8e0" stroke="#3a5070" stroke-width="1.5"/>
+                <!-- Castle wings -->
+                <rect x="358" y="270" width="22" height="43" fill="#c0d0e8" stroke="#3a5070" stroke-width="1.2"/>
+                <rect x="420" y="270" width="22" height="43" fill="#c0d0e8" stroke="#3a5070" stroke-width="1.2"/>
+                <!-- Towers -->
+                <rect x="362" y="255" width="12" height="18" fill="#b0c0d8" stroke="#3a5070" stroke-width="1"/>
+                <rect x="426" y="255" width="12" height="18" fill="#b0c0d8" stroke="#3a5070" stroke-width="1"/>
+                <rect x="385" y="242" width="12" height="20" fill="#a8b8d0" stroke="#3a5070" stroke-width="1"/>
+                <rect x="403" y="242" width="12" height="20" fill="#a8b8d0" stroke="#3a5070" stroke-width="1"/>
+                <!-- Tallest center spire -->
+                <rect x="394" y="223" width="12" height="22" fill="#a0b0c8" stroke="#3a5070" stroke-width="1"/>
+                <!-- Spire peaks (triangles) -->
+                <polygon points="368,255 374,238 380,255" fill="#7a90b0" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="432,255 438,238 444,255" fill="#7a90b0" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="391,242 397,224 403,242" fill="#6a80a0" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="409,242 415,224 421,242" fill="#6a80a0" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="400,223 406,202 412,223" fill="#587898" stroke="#3a5070" stroke-width="1"/>
+                <!-- Flags -->
+                <line x1="406" y1="202" x2="406" y2="195" stroke="#3a5070" stroke-width="1.2"/>
+                <polygon points="406,195 414,197 406,200" fill="#c8282c" opacity="0.9"/>
+                <line x1="371" y1="238" x2="371" y2="232" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="371,232 377,234 371,237" fill="#c8282c" opacity="0.9"/>
+                <line x1="438" y1="238" x2="438" y2="232" stroke="#3a5070" stroke-width="1"/>
+                <polygon points="438,232 444,234 438,237" fill="#c8282c" opacity="0.9"/>
+                <!-- Archway -->
+                <path d="M 391 313 Q 391 295 400 292 Q 409 295 409 313" fill="#8090b0" stroke="#3a5070" stroke-width="1"/>
+                <!-- Castle label -->
+            </g>
+            <text x="400" y="327" font-family="Pirata One" font-size="10.5" fill="#2a3a58" text-anchor="middle">Cinderella's</text>
+            <text x="400" y="340" font-family="Pirata One" font-size="10.5" fill="#2a3a58" text-anchor="middle">Castle</text>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- PATHWAYS -->
+            <!-- ═══════════════════════════════════ -->
+            <!-- Main path from entrance to hub -->
+            <rect x="388" y="405" width="24" height="65" fill="#e8d4a0" stroke="#b89840" stroke-width="1" opacity="0.7"/>
+            <!-- Hub to castle -->
+            <rect x="392" y="310" width="16" height="45" fill="#e8d4a0" stroke="#b89840" stroke-width="1" opacity="0.7"/>
+            <!-- Hub spokes -->
+            <path class="dash-path" d="M 350 340 Q 290 330 240 330 Q 215 340 190 365"
+                  fill="none" stroke="#8b6914" stroke-width="3" stroke-dasharray="6,4" opacity="0.5"/>
+            <path class="dash-path" d="M 455 340 Q 500 335 545 345 Q 580 360 600 390"
+                  fill="none" stroke="#8b6914" stroke-width="3" stroke-dasharray="6,4" opacity="0.5" style="animation-delay:-8s"/>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- ATTRACTION ICONS -->
+            <!-- ═══════════════════════════════════ -->
+
+            <!-- Space Mountain (Tomorrowland) -->
+            <polygon points="618,360 628,342 638,360" fill="#7a90a8" stroke="#3a5060" stroke-width="1.5"/>
+            <polygon points="623,360 633,345 643,360" fill="#8aa0b8" stroke="#3a5060" stroke-width="1.2" opacity="0.7"/>
+            <text x="630" y="375" font-family="Cinzel" font-size="8" fill="#2a3a50" text-anchor="middle">Space Mtn</text>
+
+            <!-- Haunted Mansion (Liberty Square) -->
+            <rect x="302" y="265" width="18" height="22" fill="#9a8870" stroke="#5a4030" stroke-width="1.2"/>
+            <polygon points="302,265 311,256 320,265" fill="#7a6858" stroke="#5a4030" stroke-width="1"/>
+            <circle cx="311" cy="274" r="3" fill="#c8b090" opacity="0.6"/>
+            <text x="311" y="296" font-family="Cinzel" font-size="7.5" fill="#3a2010" text-anchor="middle">Haunted</text>
+            <text x="311" y="305" font-family="Cinzel" font-size="7.5" fill="#3a2010" text-anchor="middle">Mansion</text>
+
+            <!-- Pirates (Adventureland) -->
+            <text x="218" y="395" font-size="18" text-anchor="middle">⚓</text>
+            <text x="218" y="408" font-family="Cinzel" font-size="7.5" fill="#1a3010" text-anchor="middle">Pirates of</text>
+            <text x="218" y="417" font-family="Cinzel" font-size="7.5" fill="#1a3010" text-anchor="middle">Caribbean</text>
+
+            <!-- Big Thunder (Frontierland) -->
+            <polygon points="195,220 205,203 215,220" fill="#b07040" stroke="#6a3820" stroke-width="1.5"/>
+            <polygon points="202,220 212,206 222,220" fill="#c08050" stroke="#6a3820" stroke-width="1.2" opacity="0.8"/>
+            <text x="208" y="232" font-family="Cinzel" font-size="7.5" fill="#3a2010" text-anchor="middle">Big Thunder</text>
+
+            <!-- Seven Dwarfs (Fantasyland) -->
+            <rect x="370" y="128" width="14" height="14" fill="#c8a840" stroke="#7a6020" stroke-width="1.2" rx="2"/>
+            <text x="377" y="138" font-size="8" text-anchor="middle" fill="#5a4010">⛏</text>
+            <text x="377" y="152" font-family="Cinzel" font-size="7.5" fill="#3a1850" text-anchor="middle">7 Dwarfs</text>
+
+            <!-- it's a small world (Fantasyland) -->
+            <rect x="415" y="120" width="20" height="16" fill="#d4c8f0" stroke="#7a6090" stroke-width="1.2" rx="3"/>
+            <text x="425" y="131" font-size="9" text-anchor="middle" fill="#6a5080">🌍</text>
+            <text x="425" y="152" font-family="Cinzel" font-size="7.5" fill="#3a1850" text-anchor="middle">Small World</text>
+
+            <!-- Peter Pan (Fantasyland) -->
+            <text x="455" y="140" font-size="16" text-anchor="middle">🚢</text>
+            <text x="455" y="154" font-family="Cinzel" font-size="7.5" fill="#3a1850" text-anchor="middle">Peter Pan</text>
+
+            <!-- Jungle Cruise (Adventureland) -->
+            <text x="258" y="415" font-size="14" text-anchor="middle">🐊</text>
+            <text x="258" y="430" font-family="Cinzel" font-size="7.5" fill="#1a3010" text-anchor="middle">Jungle</text>
+            <text x="258" y="439" font-family="Cinzel" font-size="7.5" fill="#1a3010" text-anchor="middle">Cruise</text>
+
+            <!-- Buzz Lightyear -->
+            <text x="660" y="395" font-size="14" text-anchor="middle">🚀</text>
+            <text x="660" y="410" font-family="Cinzel" font-size="7.5" fill="#2a3a50" text-anchor="middle">Buzz</text>
+
+            <!-- Magic Kingdom border decorative dots -->
+            <circle cx="400" cy="570" r="4" fill="#8b6914" opacity="0.4"/>
+            <circle cx="380" cy="570" r="3" fill="#8b6914" opacity="0.3"/>
+            <circle cx="420" cy="570" r="3" fill="#8b6914" opacity="0.3"/>
+
+            <!-- Park entrance archway -->
+            <path d="M 360 575 Q 400 555 440 575" fill="none" stroke="#5a3825" stroke-width="2.5"/>
+            <rect x="352" y="568" width="12" height="20" fill="#5a3825" opacity="0.4"/>
+            <rect x="436" y="568" width="12" height="20" fill="#5a3825" opacity="0.4"/>
+            <text x="400" y="600" font-family="Pirata One" font-size="10" fill="#5a3010" text-anchor="middle">Park Entrance</text>
+
+            <!-- Train track (outer ring) -->
+            <ellipse cx="400" cy="310" rx="310" ry="245"
+                     fill="none" stroke="#5a3825" stroke-width="2"
+                     stroke-dasharray="8,5" opacity="0.3"/>
+
+            <!-- ═══════════════════════════════════ -->
+            <!-- TREASURE X MARKER -->
+            <!-- ═══════════════════════════════════ -->
+            <!-- 
+                TREASURE COORDINATES GO HERE
+                Current position: Central Hub plaza, near castle entrance
+                Update TREASURE_LAT / TREASURE_LNG in the JS below to match your coordinates
+                The SVG X position is set by latLngToSVG() dynamically — this is just the initial visual placeholder
+            -->
+            <g class="treasure-x" id="treasure-marker" transform="translate(400, 350)">
+                <circle class="x-glow" r="22" fill="#ffd700" opacity="0.25"/>
+                <line x1="-18" y1="-18" x2="18" y2="18" stroke="#6b0000" stroke-width="9" stroke-linecap="round"/>
+                <line x1="18" y1="-18" x2="-18" y2="18" stroke="#6b0000" stroke-width="9" stroke-linecap="round"/>
+                <line x1="-18" y1="-18" x2="18" y2="18" stroke="#dd0000" stroke-width="5.5" stroke-linecap="round"/>
+                <line x1="18" y1="-18" x2="-18" y2="18" stroke="#dd0000" stroke-width="5.5" stroke-linecap="round"/>
+                <g class="x-sparks">
+                    <circle cx="-24" cy="0" r="3" fill="#ffd700"/>
+                    <circle cx="24" cy="0" r="3" fill="#ffd700"/>
+                    <circle cx="0" cy="-24" r="3" fill="#ffd700"/>
+                    <circle cx="0" cy="24" r="3" fill="#ffd700"/>
+                </g>
+            </g>
+
+            <!-- User location marker (injected by JS) -->
+            <g id="user-location-group"></g>
+
+        </svg>
+
+        <!-- Compass -->
+        <svg class="compass-wrap" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="48" fill="#e8d5b7" stroke="#3d2817" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="41" fill="none" stroke="#8b6914" stroke-width="1" stroke-dasharray="3,3"/>
+            <path d="M50 8 L45 48 L50 43 L55 48 Z" fill="#c85a54" stroke="#2a1810" stroke-width="1"/>
+            <path d="M50 92 L45 52 L50 57 L55 52 Z" fill="#4a4a4a" stroke="#2a1810" stroke-width="1"/>
+            <path d="M92 50 L52 45 L57 50 L52 55 Z" fill="#4a4a4a" stroke="#2a1810" stroke-width="1"/>
+            <path d="M8 50 L48 45 L43 50 L48 55 Z" fill="#4a4a4a" stroke="#2a1810" stroke-width="1"/>
+            <text x="50" y="7"  font-family="Cinzel" font-size="13" font-weight="700" fill="#c85a54" text-anchor="middle">N</text>
+            <text x="50" y="99" font-family="Cinzel" font-size="11" fill="#3d2817" text-anchor="middle">S</text>
+            <text x="97" y="54" font-family="Cinzel" font-size="11" fill="#3d2817" text-anchor="middle">E</text>
+            <text x="3"  y="54" font-family="Cinzel" font-size="11" fill="#3d2817" text-anchor="middle">W</text>
+            <circle cx="50" cy="50" r="6" fill="#2a1810"/>
+            <circle cx="50" cy="50" r="3" fill="#ffd700"/>
+        </svg>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-box">
+        <h3>⚔ Map Legend ⚔</h3>
+        <div class="legend-grid">
+            <div class="legend-item"><div class="legend-swatch" style="background:#c8a8d0;"></div> Fantasyland</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#c9a96e;"></div> Frontierland</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#7aab5c;"></div> Adventureland</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#b0c4d8;"></div> Tomorrowland</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#d4b896;"></div> Liberty Square</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#b8c8e0;"></div> Cinderella Castle</div>
+            <div class="legend-item"><span style="color:#dd0000;font-size:1.3em;line-height:1;">✗</span>&nbsp; Treasure Location</div>
+            <div class="legend-item"><span style="color:#4285f4;font-size:1.3em;line-height:1;">●</span>&nbsp; Your Location</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        28° 25′ N · 81° 34′ W &nbsp;·&nbsp; Magic Kingdom, Walt Disney World<br>
+        <em>"Follow the path of wonder, and fortune shall find thee…"</em>
+        <br>
+        <button id="track-btn" onclick="toggleTracking()">📍 Track My Location</button>
+    </div>
+</div>
+
+<script>
+    // ══════════════════════════════════════════════
+    // TREASURE COORDINATES
+    // Update these to your real coordinates!
+    // ══════════════════════════════════════════════
+    const TREASURE_LAT = 28.4184140;
+    const TREASURE_LNG = -81.5846641;
+
+    // Approximate bounding box of Magic Kingdom park
+    const MAP_BOUNDS = {
+        north: 28.4230,
+        south: 28.4155,
+        east:  -81.5765,
+        west:  -81.5870
+    };
+
+    // SVG viewport
+    const SVG_W = 800, SVG_H = 620;
+    const PAD = 30;
+
+    function latLngToSVG(lat, lng) {
+        const x = PAD + ((lng - MAP_BOUNDS.west)  / (MAP_BOUNDS.east  - MAP_BOUNDS.west))  * (SVG_W - 2*PAD);
+        const y = PAD + ((MAP_BOUNDS.north - lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * (SVG_H - 2*PAD);
+        return { x: Math.max(PAD, Math.min(SVG_W-PAD, x)),
+                 y: Math.max(PAD, Math.min(SVG_H-PAD, y)) };
+    }
+
+    // Position the X at the treasure coords
+    const xPos = latLngToSVG(TREASURE_LAT, TREASURE_LNG);
+    document.getElementById('treasure-marker')
+        .setAttribute('transform', `translate(${xPos.x}, ${xPos.y})`);
+
+    // ── GPS TRACKING ──────────────────────────────
+    let watchId = null;
+
+    function haversine(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLng = (lng2-lng1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function fmtDist(m) {
+        if (m < 5)    return "🎉 You found the treasure!";
+        if (m < 100)  return `${Math.round(m)} meters away — getting warm! 🔥`;
+        if (m < 500)  return `${Math.round(m)} meters to treasure`;
+        if (m < 1000) return `${Math.round(m)} m to treasure`;
+        return `${(m/1000).toFixed(2)} km to treasure`;
+    }
+
+    function onPosition(pos) {
+        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+        const dist = haversine(lat, lng, TREASURE_LAT, TREASURE_LNG);
+
+        const hud = document.getElementById('hud');
+        hud.style.display = 'block';
+        document.getElementById('hud-dist').textContent = fmtDist(dist);
+        document.getElementById('hud-acc').textContent = `GPS accuracy: ±${Math.round(accuracy)} m`;
+        hud.classList.toggle('found', dist < 5);
+
+        // Draw user dot on SVG
+        const p = latLngToSVG(lat, lng);
+        const g = document.getElementById('user-location-group');
+        g.innerHTML = `
+            <circle cx="${p.x}" cy="${p.y}" r="${Math.min(40, accuracy/3)}"
+                    fill="#4285f4" opacity="0.18"/>
+            <circle cx="${p.x}" cy="${p.y}" r="7"
+                    fill="#4285f4" stroke="#fff" stroke-width="2.5"/>
+            <circle cx="${p.x}" cy="${p.y}" r="7"
+                    fill="none" stroke="#4285f4" stroke-width="2" opacity="0.8">
+                <animate attributeName="r" from="7" to="20" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" from="0.8" to="0" dur="2s" repeatCount="indefinite"/>
+            </circle>
+        `;
+    }
+
+    function onError(err) {
+        let msg = 'Location unavailable.';
+        if (err.code === 1) msg = 'Location permission denied. Please enable it in settings.';
+        if (err.code === 3) msg = 'Location request timed out.';
+        alert('📍 ' + msg);
+    }
+
+    function toggleTracking() {
+        const btn = document.getElementById('track-btn');
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('user-location-group').innerHTML = '';
+            btn.textContent = '📍 Track My Location';
+            btn.classList.remove('tracking');
+        } else {
+            if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+            watchId = navigator.geolocation.watchPosition(onPosition, onError,
+                { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
+            btn.textContent = '🔴 Stop Tracking';
+            btn.classList.add('tracking');
+        }
+    }
+
+    // X click interaction
+    document.getElementById('treasure-marker').addEventListener('click', () => {
+        alert('🏰 Hark, brave adventurer!\n\nThe treasure lies hidden within the Magic Kingdom.\nFollow the path of wonder to claim your prize!\n\nWhere the X is marked — fortune awaits!');
+    });
+</script>
+</body>
+</html>
