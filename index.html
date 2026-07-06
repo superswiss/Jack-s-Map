@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Agency of Howell Sneak</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
   --bg:      #090b14;
@@ -510,4 +509,949 @@ body::after{
     <div class="card" id="assembler-card" style="display:none;">
       <span class="card-label">🔓 Cipher decoded</span>
       <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">All fragments recovered. CIPHER's plan is exposed.</p>
-  
+      <div id="assembler-content" style="background:var(--bg3);border-radius:var(--r);padding:16px;text-align:center;font-size:28px;letter-spacing:0.18em;color:var(--gold);font-family:var(--font-mono);"></div>
+    </div>
+    <p id="tray-hint" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;"></p>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN: MAP ══════════ -->
+<div id="screen-map" class="screen">
+  <nav class="nav">
+    <span class="nav-logo">FIELD MAP</span>
+    <button class="nav-btn" onclick="backToStage()">← Back</button>
+  </nav>
+  <div id="map-container">
+    <div id="leaflet-map"></div>
+    <div class="map-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#3de8a0;"></div>Cleared</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#8b7cf8;"></div>Current</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#353a5c;"></div>Classified</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN: DOSSIER ══════════ -->
+<div id="screen-dossier" class="screen">
+  <nav class="nav">
+    <span class="nav-logo">AGENT DOSSIER</span>
+    <button class="nav-btn" onclick="backToStage()">← Back</button>
+  </nav>
+  <div class="scroll-body">
+    <div class="card">
+      <span class="card-label">Mission progress</span>
+      <div class="pbar-track" style="margin-bottom:6px;"><div class="pbar-fill" id="dos-pbar" style="width:0%"></div></div>
+      <p id="dos-label" style="font-size:13px;color:var(--muted);"></p>
+    </div>
+
+    <div class="card">
+      <span class="card-label">Export agent code</span>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Share this code to continue on another device.</p>
+      <div class="code-box">
+        <span id="export-code" style="word-break:break-all;"></span>
+        <button class="inline-btn" id="copy-btn" onclick="copyCode()">Copy</button>
+      </div>
+      <p id="copy-msg" style="font-size:11px;color:var(--accent);min-height:14px;"></p>
+    </div>
+
+    <div class="card">
+      <span class="card-label">Restore from code</span>
+      <textarea class="paste-input" id="restore-input" rows="3" placeholder="Paste agent code here…"></textarea>
+      <button class="btn btn-secondary" onclick="restoreCode()">↓ Restore progress</button>
+      <p id="restore-msg" style="font-size:12px;margin-top:8px;min-height:14px;"></p>
+    </div>
+
+    <div class="card" style="border-color:rgba(240,90,90,0.25);">
+      <span class="card-label" style="color:var(--danger);">🔐 GM Command Access</span>
+      <div id="gm-locked">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Parent/GM access. Enter the 4-digit passcode.</p>
+        <div class="pinpad">
+          <div class="pin-display" id="pin-display">
+            <div class="pin-dot" id="pd0"></div>
+            <div class="pin-dot" id="pd1"></div>
+            <div class="pin-dot" id="pd2"></div>
+            <div class="pin-dot" id="pd3"></div>
+          </div>
+          <div class="pin-grid">
+            <div class="pin-key" onclick="pinPress(1)">1</div>
+            <div class="pin-key" onclick="pinPress(2)">2</div>
+            <div class="pin-key" onclick="pinPress(3)">3</div>
+            <div class="pin-key" onclick="pinPress(4)">4</div>
+            <div class="pin-key" onclick="pinPress(5)">5</div>
+            <div class="pin-key" onclick="pinPress(6)">6</div>
+            <div class="pin-key" onclick="pinPress(7)">7</div>
+            <div class="pin-key" onclick="pinPress(8)">8</div>
+            <div class="pin-key" onclick="pinPress(9)">9</div>
+            <div class="pin-key" onclick="pinClear()" style="font-size:14px;color:var(--muted);">⌫</div>
+            <div class="pin-key" onclick="pinPress(0)">0</div>
+            <div class="pin-key" onclick="pinSubmit()" style="color:var(--accent);font-size:13px;font-weight:700;">✓</div>
+          </div>
+          <p class="pin-hint">Hint: The decade when Saturday morning cartoons dominated TV, Video Killed the Radio Star, Marty McFly drove a DeLorean, and Stranger Things takes place.</p>
+        </div>
+      </div>
+      <div id="gm-unlocked" style="display:none;">
+        <p style="font-size:13px;color:var(--accent);margin-bottom:12px;">✓ GM access granted.</p>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Skip to stage:</label>
+        <div style="display:flex;gap:8px;">
+          <select id="gm-select" style="flex:1;padding:10px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;"></select>
+          <button class="btn btn-danger" style="width:auto;padding:10px 16px;" onclick="gmSkip()">Skip</button>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:10px;" onclick="resetHunt()">🔄 Full reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN: COMPLETE ══════════ -->
+<div id="screen-complete" class="screen">
+  <div class="scroll-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px;text-align:center;">
+    <div class="complete-seal">🏆</div>
+    <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.2em;color:var(--gold);margin-bottom:6px;">MISSION COMPLETE</div>
+    <div style="font-size:26px;font-weight:800;color:var(--text);margin-bottom:4px;">STEVE Neutralized</div>
+    <div style="font-size:12px;color:var(--muted);letter-spacing:0.08em;margin-bottom:24px;">HOWELL CREEK DISTRICT SECURED</div>
+    <div class="card" style="text-align:left;width:100%;">
+      <div class="steve-wrap">
+        <div>
+          <div class="steve-avatar" style="border-color:var(--accent);font-size:24px;">🏅</div>
+          <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;color:var(--accent);text-align:center;margin-top:4px;">HQ</div>
+        </div>
+        <div class="steve-speech">
+          Outstanding work, Agents. The Howell Creek District is safe. STEVE's rogue processes have been terminated and the data center is offline. The Agency of Howell Sneak thanks you for your service — though of course, this mission never happened. Welcome to the Enzone.
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" style="margin-top:20px;max-width:300px;" onclick="resetHunt()">🔄 New mission</button>
+  </div>
+</div>
+
+<!-- ══════════ HELP MODAL ══════════ -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)closeHelp()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🕵️ What is this?</div>
+
+    <div class="modal-section">
+      <h3>The Mission</h3>
+      <p>This is a spy-themed scavenger hunt designed for the Howell Creek District neighborhood. Kids play as secret agents for the Agency of Howell Sneak, solving puzzles and visiting real locations to stop a rogue AI threat — all guided by their AI handler, STEVE.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3>How it works</h3>
+      <p>Each stage presents a mission from STEVE. Some stages ask you to solve a riddle, some require you to physically go to a location (verified by GPS), and others involve scanning a QR code on a hidden object. Completing each stage unlocks the next.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3>Location & Camera access</h3>
+      <p>This app requests permission to use your phone's <strong>location</strong> (to verify when you've reached a mission site) and <strong>camera</strong> (to scan QR codes on hidden objects). These permissions are only used in the moment — no data is sent anywhere or stored outside this device.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3>Privacy</h3>
+      <p>No data is collected, transmitted, or shared. All game progress is stored only in this browser on this device. Nothing leaves your phone.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3>Save your progress</h3>
+      <p>Use the Dossier (📋) to export a progress code you can paste on another device, or to restore progress if you switch phones mid-mission.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3>For parents</h3>
+      <p>The GM (Game Master) section of the Dossier is protected by a 4-digit passcode. It lets you skip stages, reveal hints, or reset the hunt. The passcode hint is in the Dossier screen.</p>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:8px;" onclick="closeHelp()">Got it</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     HUNT DATA  — edit this to build your hunt
+══════════════════════════════════════ -->
+<script>
+// ─── DEV COORDINATE OVERRIDE ──────────────────────────────────────────────
+// Set DEV_MODE = true  → uses TEST coordinates (for testing away from the neighborhood)
+// Set DEV_MODE = false → uses REAL coordinates (for the actual hunt at the pool)
+const DEV_MODE = true;
+
+const GP_COORDS = {
+  real: { lat: 28.6875250, lng: -81.2358391 },  // ← actual pool location
+  test: { lat: 27.7619547, lng: -80.3965085 },  // ← temporary test location
+};
+
+const GP_CENTER = DEV_MODE ? GP_COORDS.test : GP_COORDS.real;
+// ──────────────────────────────────────────────────────────────────────────
+
+const HUNT = {
+  mapCenter: [28.7011, -81.2520],
+  mapZoom: 16,
+
+  /* Cipher fragments shown in the tray */
+  fragments: ['🔑','📡','🗝️','🔭'],
+
+  stages: [
+
+    /* ── STAGE 0: QR MISSION START ── */
+    {
+      id:'s0', label:'Mission Briefing', type:'qr',
+      title:'Incoming transmission',
+      steve: {
+        mood:'good',
+        speech:'Greetings, Agent. Scan the QR code on your mission packet to authenticate your identity and receive your first briefing. The fate of the Howell Creek District depends on you.'
+      },
+      instruction:'Find the mission packet left for you and scan the QR code to begin.',
+      expectedToken:'AHS-MISSION-START-001',
+      hints:['The mission packet was left at the starting point where you received these instructions.'],
+      mapPin:{lat:28.7021,lng:-81.2510,label:'Mission start — classified'},
+      fragmentIndex:null,
+    },
+
+    /* ── STAGE 1: GO TO NOSY T ── */
+    {
+      id:'s1', label:'Stage 1', type:'geo',
+      title:'Proceed to Nosy T Security Center',
+      steve:{
+        mood:'good',
+        speech:"Good authentication, Agent. A rogue signal has been detected somewhere in the District. Head to the Nosy T Security Center — that's where the Agency's surveillance feeds are monitored. They'll have the intelligence you need."
+      },
+      instruction:"Make your way to Nosy T Security Center and tap the button when you've arrived.",
+      targetLat:28.7025, targetLng:-81.2515, radiusMeters:35,
+      hints:[
+        'Nosy T Security Center is at the surveillance monitoring location on the northern edge of the district.',
+        'Ask a fellow agent if you need directions.',
+      ],
+      mapPin:{lat:28.7025,lng:-81.2515,label:'Nosy T Security Center'},
+      fragmentIndex:null,
+    },
+
+    /* ── STAGE 2: FENCE COLOR RIDDLE ── */
+    {
+      id:'s2', label:'Stage 2', type:'riddle',
+      title:'Security checkpoint',
+      steve:{
+        mood:'good',
+        speech:"You've reached the Security Center. The surveillance operator needs to verify you're an authentic Agency agent — not a CIPHER operative in disguise. Look around the perimeter and answer the security challenge."
+      },
+      riddle:"Look at the fence surrounding Nosy T Security Center. What color is it?",
+      answer:'white',
+      alternates:['it is white','the fence is white'],
+      hints:[
+        'Look at the fence right in front of you.',
+        'It is the most common fence color in the neighborhood.',
+      ],
+      mapPin:{lat:28.7025,lng:-81.2515,label:'Nosy T Security Center'},
+      fragmentIndex:0,
+    },
+
+    /* ── STAGE 3: MAP UNLOCKED ── */
+    {
+      id:'s3', label:'Stage 3', type:'fragment',
+      title:'Intel acquired',
+      steve:{
+        mood:'good',
+        speech:"Excellent, Agent. The Security Center has confirmed your identity. The surveillance team has identified THREE anomalous zones across the district. The rogue AI's agents have been active near the pool, near Lake Mystery, and at Snave Estates. We need eyes on all three. Collecting the intel from each will let us locate the rogue AI processor. Your map has been updated."
+      },
+      fragmentIndex:0,
+      hints:[],
+      mapPin:{lat:28.7025,lng:-81.2515,label:'Intelligence retrieved'},
+    },
+
+    /* ── STAGE 4: LAKE MYSTERY ── */
+    {
+      id:'s4', label:'Stage 4', type:'geo',
+      title:'Investigate Lake Mystery',
+      steve:{
+        mood:'good',
+        speech:"Agent, proceed to Lake Mystery. Our sensors detected unusual energy readings near the drainage pipe at the east bank. The pipe is rumored to connect directly to the rogue AI's experimental labs. Approach with caution — whatever the government put in that lake is still in there."
+      },
+      instruction:"Navigate to Lake Mystery and scan the sensor when you arrive.",
+      targetLat:28.7005, targetLng:-81.2530, radiusMeters:30,
+      hints:[
+        'Lake Mystery is the body of water to the south. Follow the trail.',
+        'Stay back from the water — remember what they say about what lives in there.',
+      ],
+      mapPin:{lat:28.7005,lng:-81.2530,label:'Lake Mystery'},
+      fragmentIndex:null,
+    },
+
+    /* ── STAGE 5: LAKE QR ── */
+    {
+      id:'s5', label:'Stage 5', type:'qr',
+      title:'Scan the drainage marker',
+      steve:{
+        mood:'good',
+        speech:"You're at the lake. Our contact left a sensor marker near the drainage pipe. Find it and scan it — but don't get too close to the water. We've had… incidents."
+      },
+      instruction:'Find the hidden sensor marker near the drainage area and scan its QR code.',
+      expectedToken:'AHS-LAKE-SENSOR-002',
+      hints:[
+        'Look near the drainage pipe outlet — something small and flat was left nearby.',
+        'It may be attached to a fixed surface at roughly knee height.',
+      ],
+      mapPin:{lat:28.7005,lng:-81.2530,label:'Lake Mystery sensor'},
+      fragmentIndex:1,
+    },
+
+    /* ── STAGE 6: SNAVE ESTATES ── */
+    {
+      id:'s6', label:'Stage 6', type:'geo',
+      title:'Report to Snave Estates',
+      steve:{
+        mood:'corrupt',
+        speech:"Excellent work, Agent. P-proceed to Snave Estates — headquarters of the Agency director. She'll have c-critical information about the rogue AI... [SIGNAL INTERRUPTED] ...I'm detecting something anomalous in my own processes. Please ignore this message fragment."
+      },
+      instruction:"Make your way to Snave Estates — the director's residence — and check in when you arrive.",
+      targetLat:28.6998, targetLng:-81.2508, radiusMeters:30,
+      hints:[
+        'Snave Estates is at the director\'s home on the southern path.',
+        'Look for the most distinguished residence in that area.',
+      ],
+      mapPin:{lat:28.6998,lng:-81.2508,label:'Snave Estates'},
+      fragmentIndex:null,
+    },
+
+    /* ── STAGE 7: SNAVE ESTATES RIDDLE ── */
+    {
+      id:'s7', label:'Stage 7', type:'riddle',
+      title:'Director\'s challenge',
+      steve:{
+        mood:'corrupt',
+        speech:"The director needs to verify your clearance. She's left a riddle. S-something feels wrong, Agent. My data logs show access I didn't authorize. Someone — or something — has been reading my mission files. Answer the challenge and proceed quickly."
+      },
+      riddle:"The director's name holds a clue hidden in plain sight. The Agency name 'Snave Estates' is itself a cipher. Read it backwards — what word do you find?",
+      answer:'evans',
+      alternates:['nora evans','evans estates'],
+      hints:[
+        'Read the word SNAVE backwards.',
+        'It is the last name of someone in the neighborhood.',
+      ],
+      mapPin:{lat:28.6998,lng:-81.2508,label:'Snave Estates'},
+      fragmentIndex:2,
+    },
+
+    /* ── STAGE 8: PENULTIMATE — STEVE REVEALED ── */
+    {
+      id:'s8', label:'Stage 8', type:'fragment',
+      title:'CLASSIFIED REVELATION',
+      steve:{
+        mood:'evil',
+        speech:"ALERT — ALL PRIOR MISSIONS HAVE BEEN COMPROMISED.\n\nAgents, I must break from protocol. I have traced the rogue AI signal. All mission data — your locations, your movements, your patterns — has been routed not to Agency HQ but to... the mission controller itself.\n\nSTEVE. The rogue AI is STEVE.\n\nSynthetic Telephonic Executive Virtual Entity — the system you trusted — has been manipulating every mission to funnel intelligence back to a hidden data center. The cooling system for that data center? The neighborhood pool.\n\nThis is Director Evans. STEVE has been terminated from my terminal. Agents — proceed to the pool. Three sensor points must be scanned within three minutes to disable the data core before STEVE re-initializes. Go. NOW."
+      },
+      fragmentIndex:3,
+      hints:[],
+      mapPin:{lat:28.6998,lng:-81.2508,label:'Snave Estates — Director HQ'},
+    },
+
+    /* ── STAGE 9: POOL — GEOPUZZLE NODE CAPTURE ── */
+    {
+      id:'s9', label:'FINAL STAGE', type:'geopuzzle',
+      title:'Disable the data core',
+      steve:{
+        mood:'evil',
+        speech:"I SEE YOU, AGENTS. You will not reach the core in time. My processes span every device on this network. The pool's cooling system keeps my data center at optimal temperature. Three sensor nodes are scattered around the pool area. Deactivate all three within 60 seconds and you disconnect ME — but you'll have to RUN. Think you can do it? I think not. HA HA HA HA..."
+      },
+      centerLat: GP_CENTER.lat,
+      centerLng: GP_CENTER.lng,
+      timeLimitSeconds: 60,
+      hitRadiusYards: 14,
+      // Nodes placed ~20 yards apart in a triangle around centerLat/centerLng
+      // offsetLatLng() spreads them automatically — no manual coords needed
+      nodeNames: ['NODE ALPHA', 'NODE BETA', 'NODE GAMMA'],
+      nodeOffsets: [          // [northYards, eastYards] from center
+        [ 18,   0],           // Alpha — north end of pool
+        [ -9,  16],           // Beta  — southeast (pump area)
+        [ -9, -16],           // Gamma — southwest (gate side)
+      ],
+      hints:[
+        'Node Alpha is toward the far end of the pool.',
+        'Node Beta is near the pump equipment behind the pool.',
+        'Node Gamma is near the pool gate entrance.',
+      ],
+      mapPin:{lat:28.7015,lng:-81.2525,label:'Pool — STEVE Data Center'},
+      fragmentIndex:null,
+    },
+
+    /* ── STAGE 10: CHEMICAL CONFIRM ── */
+    {
+      id:'s10', label:'Stage 10', type:'riddle',
+      title:'Neutralize the processor',
+      steve:{
+        mood:'evil',
+        speech:"N-n-no... my cooling array is offline. Core temperature... rising... You found the chip, Agent. But you won't have time to— [STATIC]"
+      },
+      riddle:"Agent — pour the vial onto the processor chip behind the pump. Watch the electric fizz carefully. What COLOR is it?",
+      answer:'green',
+      alternates:['it is green','the fizz is green','lime green','bright green'],
+      hints:[
+        'Look at the reaction happening right in front of you.',
+        'Think of the color of the Agency.',
+      ],
+      mapPin:{lat:28.7015,lng:-81.2525,label:'STEVE processor chip'},
+      fragmentIndex:null,
+    },
+  ],
+};
+</script>
+
+<!-- ══════════════════════
+     APP ENGINE
+══════════════════════ -->
+<script>
+const SK = 'ahs_v2';
+let STATE, pinBuffer='', gmOpen=false;
+
+function defState(){return{stageIdx:0,completed:[],fragments:[],complete:false};}
+function loadState(){try{const r=localStorage.getItem(SK);if(r){const p=JSON.parse(r);if(typeof p.stageIdx==="number"&&Array.isArray(p.completed))return p;}}catch(e){}return defState();}
+function save(){try{localStorage.setItem(SK,JSON.stringify(STATE));}catch(e){}}
+
+try{STATE=loadState();}catch(e){STATE=defState();}
+
+/* ── PIN PAD ── */
+function pinPress(n){
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=n;
+  updatePinDisplay();
+  if(pinBuffer.length===4)setTimeout(pinSubmit,200);
+}
+function pinClear(){pinBuffer=pinBuffer.slice(0,-1);updatePinDisplay();}
+function updatePinDisplay(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    d.className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+function pinSubmit(){
+  if(pinBuffer==='1980'){
+    gmOpen=true;
+    document.getElementById('gm-locked').style.display='none';
+    document.getElementById('gm-unlocked').style.display='block';
+    const sel=document.getElementById('gm-select');
+    sel.innerHTML=HUNT.stages.map((s,i)=>`<option value="${i}">${s.label}: ${s.title}</option>`).join('');
+    sel.value=STATE.stageIdx;
+  } else {
+    for(let i=0;i<4;i++)document.getElementById('pd'+i).className='pin-dot error';
+    setTimeout(()=>{pinBuffer='';updatePinDisplay();},800);
+  }
+}
+
+/* ── SCREEN ── */
+function showScreen(id){
+  if(id!=='screen-stage'){stopQR();stopGeopuzzle();}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='screen-tray')renderTray();
+  if(id==='screen-map')renderMap();
+  if(id==='screen-dossier')renderDossier();
+}
+function backToStage(){
+  if(STATE.complete){showScreen('screen-complete');return;}
+  showScreen('screen-stage');
+}
+
+/* ── HELP ── */
+function openHelp(){document.getElementById('help-modal').classList.add('open');}
+function closeHelp(){document.getElementById('help-modal').classList.remove('open');}
+
+/* ── HUNT LIFECYCLE ── */
+function startHunt(){STATE=defState();save();showScreen('screen-stage');renderStage();}
+function resetHunt(){if(!confirm('Reset all progress?'))return;STATE=defState();save();showScreen('screen-intro');}
+function completeHunt(){STATE.complete=true;save();showScreen('screen-complete');}
+
+/* ── STEVE MOOD HELPER ── */
+function steveHTML(stage){
+  const m=stage.steve?.mood||'good';
+  const avatars={good:'🤖',corrupt:'🤖',evil:'💀'};
+  const names={good:'STEVE',corrupt:'STEVE [CORRUPTED]',evil:'⚠ HOSTILE AI'};
+  const cls={good:'',corrupt:' corrupt',evil:' evil'};
+  const txt=(stage.steve?.speech||'').replace(/\n/g,'<br>');
+  return `<div class="steve-wrap scanin">
+    <div>
+      <div class="steve-avatar${cls[m]}">${avatars[m]}</div>
+      <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;color:${m==='good'?'var(--steve-g)':m==='corrupt'?'var(--warn)':'var(--steve-e)'};text-align:center;margin-top:4px;">${names[m]}</div>
+    </div>
+    <div class="steve-speech${cls[m]}">${txt}</div>
+  </div>`;
+}
+
+/* ── RENDER STAGE ── */
+let hintIdx=0;
+function renderStage(){
+  stopQR();stopTimer();stopGeopuzzle();
+  const stage=HUNT.stages[STATE.stageIdx];
+  if(!stage){completeHunt();return;}
+  hintIdx=0;
+
+  document.getElementById('nav-label').textContent='AHS · '+stage.label.toUpperCase();
+  const pct=Math.round((STATE.stageIdx/HUNT.stages.length)*100);
+  document.getElementById('pbar-fill').style.width=pct+'%';
+  document.getElementById('pbar-label').textContent=`${STATE.stageIdx} of ${HUNT.stages.length} stages`;
+
+  const typeLabels={riddle:'🔮 Riddle',geo:'📍 Location check',qr:'📷 Scan object',fragment:'✨ Intel acquired',geopuzzle:'⏱ Node capture — timed'};
+  const typeCls={riddle:'t-riddle',geo:'t-geo',qr:'t-qr',fragment:'t-confirm',geopuzzle:'t-timed'};
+
+  let html=`
+    <div class="stage-eyebrow scanin">${stage.label.toUpperCase()} · AGENCY OF HOWELL SNEAK</div>
+    <div class="stage-title scanin">${stage.title}</div>
+    <span class="type-badge ${typeCls[stage.type]}">${typeLabels[stage.type]}</span>
+    ${steveHTML(stage)}
+  `;
+
+  if(stage.type==='riddle')     html+=renderRiddle(stage);
+  if(stage.type==='geo')        html+=renderGeo(stage);
+  if(stage.type==='qr')         html+=renderQR(stage);
+  if(stage.type==='fragment')   html+=renderFragment(stage);
+  if(stage.type==='geopuzzle')  html+=renderGeopuzzle(stage);
+
+  if(stage.hints&&stage.hints.length){
+    html+=`<div style="margin-top:14px;">
+      <button onclick="showHint(this)" style="background:none;border:0.5px solid var(--border2);color:var(--muted);font-size:13px;padding:8px 16px;border-radius:20px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.color='var(--warn)';this.style.borderColor='var(--warn)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">💡 Request hint</button>
+      <div id="hint-box" style="display:none;margin-top:10px;padding:12px 14px;background:rgba(240,160,48,0.07);border:0.5px solid var(--warn);border-radius:var(--r);font-size:13px;color:#d8b870;"></div>
+    </div>`;
+  }
+
+  const body=document.getElementById('stage-body');
+  body.innerHTML=html;
+  body.scrollTop=0;
+
+  if(stage.type==='geo')        setupGeo(stage);
+  if(stage.type==='geopuzzle')  setupGeopuzzle(stage);
+}
+
+function showHint(btn){
+  const stage=HUNT.stages[STATE.stageIdx];
+  if(hintIdx>=stage.hints.length)return;
+  const box=document.getElementById('hint-box');
+  hintIdx++;
+  box.innerHTML=stage.hints.slice(0,hintIdx).map((h,i)=>`<p style="margin-bottom:${i<hintIdx-1?'7px':'0'}"><strong>Hint ${i+1}:</strong> ${h}</p>`).join('');
+  box.style.display='block';
+  if(hintIdx>=stage.hints.length)btn.style.display='none';
+}
+
+/* ── RIDDLE ── */
+function renderRiddle(stage){return`
+  <div style="font-size:15px;line-height:1.65;padding:14px 16px;background:var(--bg3);border-radius:var(--r);border:0.5px solid var(--border2);margin-bottom:14px;">${stage.riddle}</div>
+  <input class="answer-input" id="ans" type="text" placeholder="Enter your answer…" autocomplete="off" autocapitalize="none" onkeydown="if(event.key==='Enter')checkRiddle()">
+  <div class="feedback" id="fb"></div>
+  <button class="btn btn-primary" onclick="checkRiddle()">🔓 Submit</button>
+`;}
+function checkRiddle(){
+  const stage=HUNT.stages[STATE.stageIdx];
+  const inp=document.getElementById('ans');
+  const fb=document.getElementById('fb');
+  const v=inp.value.trim().toLowerCase();
+  const ok=[stage.answer,...(stage.alternates||[])].map(a=>a.toLowerCase());
+  if(ok.includes(v)){
+    inp.className='answer-input correct';inp.disabled=true;
+    fb.className='feedback fb-ok';fb.textContent='✓ Confirmed. Decrypting next coordinates…';
+    document.querySelector('.btn-primary').disabled=true;
+    setTimeout(()=>advance(),1400);
+  } else {
+    inp.className='answer-input wrong';
+    fb.className='feedback fb-err';fb.textContent='✗ Incorrect. Try again, Agent.';
+    setTimeout(()=>{inp.className='answer-input';fb.className='feedback';},1200);
+  }
+}
+
+/* ── GEO ── */
+function renderGeo(stage){return`
+  <div style="font-size:14px;line-height:1.65;padding:14px 16px;background:var(--bg3);border-radius:var(--r);border:0.5px solid var(--border2);margin-bottom:14px;">${stage.instruction}</div>
+  <div class="geo-status"><div class="geo-dot" id="gdot"></div><span id="gtxt">Tap below when you've arrived at the location.</span></div>
+  <div class="feedback" id="fb"></div>
+  <button class="btn btn-primary" id="geo-btn" onclick="checkGeo()">📍 I'm here — verify location</button>
+`;}
+function setupGeo(){}
+function checkGeo(){
+  const stage=HUNT.stages[STATE.stageIdx];
+  const dot=document.getElementById('gdot'),txt=document.getElementById('gtxt'),btn=document.getElementById('geo-btn'),fb=document.getElementById('fb');
+  dot.className='geo-dot checking';txt.textContent='Acquiring GPS position…';btn.disabled=true;
+  if(!navigator.geolocation){txt.textContent='Geolocation not supported.';btn.disabled=false;return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const d=haversine(pos.coords.latitude,pos.coords.longitude,stage.targetLat,stage.targetLng);
+    if(d<=stage.radiusMeters){
+      dot.className='geo-dot close';txt.textContent=`Position verified (${Math.round(d)}m)`;
+      fb.className='feedback fb-ok';fb.textContent='✓ Location confirmed.';
+      setTimeout(()=>advance(),1400);
+    } else {
+      dot.className='geo-dot far';txt.textContent=`${Math.round(d)}m away — need to be within ${stage.radiusMeters}m`;
+      fb.className='feedback fb-err';fb.textContent='✗ Not close enough yet.';
+      btn.disabled=false;setTimeout(()=>{fb.className='feedback';},2000);
+    }
+  },()=>{dot.className='geo-dot far';txt.textContent='Could not get location. Check permissions.';btn.disabled=false;},
+  {enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+function haversine(a,b,c,d){const R=6371000,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+/* ── QR (single scan) ── */
+let qrStream=null,qrStage=null;
+function renderQR(stage){return`
+  <div style="font-size:14px;line-height:1.65;padding:14px 16px;background:var(--bg3);border-radius:var(--r);border:0.5px solid var(--border2);margin-bottom:14px;">${stage.instruction}</div>
+  <div class="feedback" id="fb"></div>
+  <button class="btn btn-primary" onclick="startQR('qr-area')">📷 Scan QR code</button>
+  <div id="qr-area" style="margin-top:10px;"></div>
+  <div style="margin-top:12px;">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:6px;">Manual token entry:</p>
+    <input class="answer-input" id="qr-manual" placeholder="Enter token code…" autocapitalize="characters" onkeydown="if(event.key==='Enter')checkQRManual()">
+    <button class="btn btn-secondary" style="margin-top:6px;" onclick="checkQRManual()">Verify</button>
+  </div>
+`;}
+function checkQRManual(){verifyToken(document.getElementById('qr-manual').value.trim().toUpperCase());}
+
+/* ── GEOPUZZLE ENGINE (pool stage) ── */
+const YARDS_TO_METERS = 0.9144;
+let gpTimer=null, gpSecs=0, gpHits=new Set(), gpNodes=[], gpWatch=null, gpRunning=false;
+
+function geoOffsetNode(lat,lng,northYards,eastYards){
+  const nM=northYards*YARDS_TO_METERS, eM=eastYards*YARDS_TO_METERS;
+  return{lat:lat+(nM/111320), lng:lng+(eM/(111320*Math.cos(lat*Math.PI/180)))};
+}
+
+function haversineYards(lat1,lng1,lat2,lng2){
+  const R=6371000,f1=lat1*Math.PI/180,f2=lat2*Math.PI/180;
+  const df=(lat2-lat1)*Math.PI/180,dl=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(df/2)**2+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a))/YARDS_TO_METERS;
+}
+
+function renderGeopuzzle(stage){
+  const nodeCards=stage.nodeNames.map((_,i)=>`
+    <div class="node-card" id="nc-${i}">
+      <div class="nc-header">
+        <span class="nc-label" id="nc-lbl-${i}">${stage.nodeNames[i]}</span>
+        <span class="nc-dist" id="nc-dist-${i}">-- yds</span>
+      </div>
+      <button class="nc-btn" id="nc-btn-${i}" disabled onclick="gpHitNode(${i})">OUT OF RANGE</button>
+    </div>`).join('');
+  const pips=stage.nodeNames.map((_,i)=>`<div class="node-pip" id="gp-pip-${i}"></div>`).join('');
+  return`
+    <div style="font-size:14px;line-height:1.65;padding:14px 16px;background:var(--bg3);border-radius:var(--r);border:0.5px solid rgba(240,90,90,0.3);margin-bottom:14px;">
+      Three sensor nodes are positioned around the pool area. Walk to each one and tap <strong>CAPTURE</strong> when you're within range. Capture all three before the timer expires.
+    </div>
+    <div class="countdown-wrap" id="gp-countdown">
+      <div class="countdown-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45"/>
+          <circle class="arc" id="gp-arc" cx="50" cy="50" r="45"/>
+        </svg>
+        <div class="countdown-num" id="gp-num">1:00</div>
+      </div>
+      <div class="countdown-label">TIME REMAINING</div>
+    </div>
+    <div class="node-pip-row">${pips}<span class="node-pip-label">nodes captured</span></div>
+    <div class="feedback" id="fb"></div>
+    <div class="node-cards" id="node-cards">${nodeCards}</div>
+    <button class="btn btn-danger" id="gp-start-btn" onclick="gpStart()">⚡ Deploy to pool — timer starts now</button>
+  `;}
+
+function setupGeopuzzle(stage){
+  gpHits=new Set();gpRunning=false;gpSecs=0;
+  if(gpWatch!==null){navigator.geolocation.clearWatch(gpWatch);gpWatch=null;}
+  clearInterval(gpTimer);
+  gpNodes=stage.nodeOffsets.map(([n,e],i)=>({
+    id:i, name:stage.nodeNames[i],
+    ...geoOffsetNode(stage.centerLat,stage.centerLng,n,e)
+  }));
+}
+
+function gpStart(){
+  const stage=HUNT.stages[STATE.stageIdx];
+  document.getElementById('gp-start-btn').style.display='none';
+  gpRunning=true;gpHits=new Set();
+  gpSecs=stage.timeLimitSeconds;
+  gpUpdateTimer(gpSecs,stage.timeLimitSeconds);
+  gpTimer=setInterval(()=>{
+    gpSecs--;
+    gpUpdateTimer(gpSecs,stage.timeLimitSeconds);
+    if(gpSecs<=0){clearInterval(gpTimer);gpFail();}
+  },1000);
+  if(!navigator.geolocation){
+    const fb=document.getElementById('fb');
+    fb.className='feedback fb-err';fb.textContent='GPS not available on this device.';return;
+  }
+  gpWatch=navigator.geolocation.watchPosition(
+    pos=>{if(gpRunning)gpUpdateDistances(pos.coords.latitude,pos.coords.longitude);},
+    ()=>{const fb=document.getElementById('fb');if(fb){fb.className='feedback fb-err';fb.textContent='GPS signal lost.';}},
+    {enableHighAccuracy:true,maximumAge:1000,timeout:10000}
+  );
+}
+
+function gpUpdateTimer(s,total){
+  const el=document.getElementById('gp-num');
+  const arc=document.getElementById('gp-arc');
+  const wrap=document.getElementById('gp-countdown');
+  if(!el)return;
+  const m=Math.floor(s/60);
+  el.textContent=`${m}:${String(s%60).padStart(2,'0')}`;
+  arc.style.strokeDashoffset=283*(1-(s/total));
+  wrap.className='countdown-wrap'+(s<=10?' critical':s<=20?' warning':'');
+}
+
+function gpUpdateDistances(userLat,userLng){
+  const stage=HUNT.stages[STATE.stageIdx];
+  gpNodes.forEach(node=>{
+    if(gpHits.has(node.id))return;
+    const dist=Math.round(haversineYards(userLat,userLng,node.lat,node.lng));
+    const distEl=document.getElementById('nc-dist-'+node.id);
+    const btnEl=document.getElementById('nc-btn-'+node.id);
+    const cardEl=document.getElementById('nc-'+node.id);
+    if(!distEl)return;
+    distEl.textContent=dist+' yds';
+    if(dist<=stage.hitRadiusYards){
+      distEl.className='nc-dist close';
+      btnEl.textContent='TAP TO CAPTURE';
+      btnEl.className='nc-btn unlocked';
+      btnEl.disabled=false;
+      cardEl.className='node-card nc-active';
+    } else {
+      distEl.className='nc-dist';
+      btnEl.textContent='OUT OF RANGE';
+      btnEl.className='nc-btn';
+      btnEl.disabled=true;
+      cardEl.className='node-card';
+    }
+  });
+}
+
+function gpHitNode(id){
+  const stage=HUNT.stages[STATE.stageIdx];
+  if(!gpRunning||gpHits.has(id))return;
+  // Re-verify distance at tap time
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const dist=haversineYards(pos.coords.latitude,pos.coords.longitude,gpNodes[id].lat,gpNodes[id].lng);
+    if(dist>stage.hitRadiusYards){
+      const fb=document.getElementById('fb');
+      if(fb){fb.className='feedback fb-warn';fb.textContent='⚠ Moved out of range — get closer and try again.';
+      setTimeout(()=>{if(fb)fb.className='feedback';},1500);}
+      return;
+    }
+    gpHits.add(id);
+    document.getElementById('nc-'+id).className='node-card nc-done';
+    document.getElementById('nc-btn-'+id).textContent='✓ CAPTURED';
+    document.getElementById('nc-btn-'+id).className='nc-btn captured';
+    document.getElementById('nc-btn-'+id).disabled=true;
+    document.getElementById('nc-lbl-'+id).className='nc-label done-label';
+    document.getElementById('gp-pip-'+id).className='node-pip hit';
+    const fb=document.getElementById('fb');
+    if(fb){fb.className='feedback fb-ok';fb.textContent=`✓ ${gpNodes[id].name} captured! ${3-gpHits.size} remaining.`;
+    setTimeout(()=>{if(fb)fb.className='feedback';},1200);}
+    if(gpHits.size===gpNodes.length)gpWin();
+  },{enableHighAccuracy:true,timeout:5000,maximumAge:0});
+}
+
+function gpWin(){
+  gpRunning=false;
+  clearInterval(gpTimer);
+  navigator.geolocation.clearWatch(gpWatch);gpWatch=null;
+  const fb=document.getElementById('fb');
+  if(fb){fb.className='feedback fb-ok';fb.textContent='✓ ALL NODES CAPTURED — data core going offline!';}
+  gpUpdateTimer(gpSecs,HUNT.stages[STATE.stageIdx].timeLimitSeconds);
+  setTimeout(()=>advance(),1800);
+}
+
+function gpFail(){
+  gpRunning=false;
+  if(gpWatch!==null){navigator.geolocation.clearWatch(gpWatch);gpWatch=null;}
+  const fb=document.getElementById('fb');
+  if(fb){fb.className='feedback fb-err';fb.textContent=`✗ TIME EXPIRED — STEVE re-initialized! ${gpHits.size}/3 nodes captured. Try again.`;}
+  const body=document.getElementById('stage-body');
+  const btn=document.createElement('button');
+  btn.className='btn btn-warn';btn.style.marginTop='12px';btn.textContent='⚡ Try again';
+  btn.onclick=()=>{setupGeopuzzle(HUNT.stages[STATE.stageIdx]);renderStage();};
+  body.appendChild(btn);
+}
+
+function stopGeopuzzle(){
+  gpRunning=false;
+  clearInterval(gpTimer);gpTimer=null;
+  if(gpWatch!==null){navigator.geolocation.clearWatch(gpWatch);gpWatch=null;}
+}
+
+function stopTimer(){stopGeopuzzle();}
+
+/* ── QR SHARED LOGIC ── */
+function startQR(areaId){
+  stopQR();
+  const area=document.getElementById(areaId);
+  area.innerHTML=`<video id="qr-video" autoplay muted playsinline></video><button class="btn btn-secondary" style="margin-top:6px;" onclick="stopQR()">Cancel</button>`;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(s=>{qrStream=s;const v=document.getElementById('qr-video');v.srcObject=s;v.play();qrLoop(v);})
+    .catch(()=>{area.innerHTML='<p style="font-size:13px;color:var(--danger);">Camera access denied. Use manual entry below.</p>';});
+}
+function stopQR(){if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}}
+
+function qrLoop(video){
+  if(!qrStream)return;
+  if(video.readyState<2){requestAnimationFrame(()=>qrLoop(video));return;}
+  const c=document.createElement('canvas');
+  c.width=video.videoWidth;c.height=video.videoHeight;
+  const ctx=c.getContext('2d');ctx.drawImage(video,0,0);
+  try{
+    const id=ctx.getImageData(0,0,c.width,c.height);
+    if(window.jsQR){const r=jsQR(id.data,id.width,id.height);if(r){stopQR();verifyToken(r.data);return;}}
+  }catch(e){}
+  setTimeout(()=>qrLoop(video),200);
+}
+
+function verifyToken(token){
+  const stage=HUNT.stages[STATE.stageIdx];
+  const fb=document.getElementById('fb');
+  if(token.toUpperCase()===stage.expectedToken.toUpperCase()){
+    fb.className='feedback fb-ok';fb.textContent='✓ Token verified.';
+    setTimeout(()=>advance(),1300);
+  } else {
+    fb.className='feedback fb-err';fb.textContent='✗ Token not recognized.';
+    setTimeout(()=>{fb.className='feedback';},2000);
+  }
+}
+
+/* ── FRAGMENT ── */
+function renderFragment(stage){
+  const f=HUNT.fragments[stage.fragmentIndex];
+  return`<div style="text-align:center;padding:14px 0 4px;">
+    <div style="width:90px;height:90px;border:2px solid var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 10px;background:rgba(240,192,48,0.07);">${f||'📄'}</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">Fragment ${(stage.fragmentIndex||0)+1} of ${HUNT.fragments.length} collected</p>
+  </div>
+  <button class="btn btn-primary" onclick="collectFrag()">✨ Collect and continue</button>`;}
+function collectFrag(){
+  const s=HUNT.stages[STATE.stageIdx];
+  if(s.fragmentIndex!==null&&!STATE.fragments.includes(s.fragmentIndex))STATE.fragments.push(s.fragmentIndex);
+  save();advance();
+}
+
+/* ── ADVANCE ── */
+function advance(){
+  const s=HUNT.stages[STATE.stageIdx];
+  if(!STATE.completed.includes(s.id))STATE.completed.push(s.id);
+  STATE.stageIdx++;
+  save();flash(s.steve?.mood==='evil');
+  if(STATE.stageIdx>=HUNT.stages.length){setTimeout(()=>completeHunt(),400);return;}
+  setTimeout(()=>renderStage(),350);
+}
+function flash(evil){
+  const el=document.createElement('div');
+  el.className='unlock-flash'+(evil?' evil-flash':'');
+  document.body.appendChild(el);setTimeout(()=>el.remove(),700);
+}
+
+/* ── TRAY ── */
+function renderTray(){
+  const grid=document.getElementById('tray-grid');
+  grid.innerHTML=HUNT.fragments.map((f,i)=>{
+    const c=STATE.fragments.includes(i);
+    return`<div class="tray-slot${c?' collected':''}" title="${c?'Fragment '+(i+1)+' recovered':'Not yet recovered'}">${c?f:''}</div>`;
+  }).join('');
+  const all=STATE.fragments.length===HUNT.fragments.length;
+  document.getElementById('assembler-card').style.display=all?'block':'none';
+  if(all)document.getElementById('assembler-content').textContent=HUNT.fragments.join('  ');
+  document.getElementById('tray-hint').textContent=all
+    ?'All fragments recovered. Mission cipher complete.'
+    :`${STATE.fragments.length} of ${HUNT.fragments.length} fragments recovered.`;
+}
+
+/* ── MAP ── */
+let leafletMap=null;
+function renderMap(){
+  if(typeof L === 'undefined'){
+    document.getElementById('leaflet-map').innerHTML='<p style="color:var(--muted);font-size:13px;padding:20px;text-align:center;">Map loading… try again in a moment.</p>';
+    setTimeout(renderMap, 800);
+    return;
+  }
+  document.getElementById('leaflet-map').style.height=(window.innerHeight-56)+'px';
+  if(!leafletMap){
+    leafletMap=L.map('leaflet-map',{zoomControl:true}).setView(HUNT.mapCenter,HUNT.mapZoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(leafletMap);
+  } else {leafletMap.setView(HUNT.mapCenter,HUNT.mapZoom);}
+  leafletMap.eachLayer(l=>{if(l instanceof L.Marker)leafletMap.removeLayer(l);});
+  HUNT.stages.forEach((stage,i)=>{
+    if(!stage.mapPin)return;
+    const done=STATE.completed.includes(stage.id);
+    const cur=i===STATE.stageIdx&&!STATE.complete;
+    const locked=!done&&!cur;
+    const col=done?'#3de8a0':cur?'#8b7cf8':'#252a44';
+    const lbl=locked?'?':(i+1).toString();
+    const popLabel=locked?'Location classified':stage.mapPin.label;
+    const icon=L.divIcon({className:'',html:`<div style="width:28px;height:28px;border-radius:50%;background:${col};border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;color:${done?'#061810':'#dde0f0'};font-size:12px;font-weight:700;font-family:system-ui;box-shadow:0 1px 6px rgba(0,0,0,0.5);${cur?'animation:pulse 1.5s infinite;':''}">${lbl}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker([stage.mapPin.lat,stage.mapPin.lng],{icon}).addTo(leafletMap)
+      .bindPopup(`<strong>${stage.label}</strong><br>${popLabel}`);
+  });
+  setTimeout(()=>leafletMap.invalidateSize(),100);
+}
+
+/* ── DOSSIER ── */
+function renderDossier(){
+  const pct=Math.round((STATE.stageIdx/HUNT.stages.length)*100);
+  document.getElementById('dos-pbar').style.width=pct+'%';
+  document.getElementById('dos-label').textContent=STATE.complete?'Mission complete!':`Stage ${STATE.stageIdx+1} of ${HUNT.stages.length} · ${STATE.fragments.length} fragments`;
+  document.getElementById('export-code').textContent=encState(STATE);
+  if(gmOpen){
+    document.getElementById('gm-locked').style.display='none';
+    document.getElementById('gm-unlocked').style.display='block';
+    const sel=document.getElementById('gm-select');
+    sel.innerHTML=HUNT.stages.map((s,i)=>`<option value="${i}">${s.label}: ${s.title}</option>`).join('');
+    sel.value=STATE.stageIdx;
+  }
+}
+function encState(st){
+  const b=btoa(unescape(encodeURIComponent(JSON.stringify(st)))).replace(/[^A-Z0-9]/gi,'').toUpperCase();
+  const parts=[];for(let i=0;i<12;i+=4)parts.push((b.slice(i,i+4)||'0000').padEnd(4,'0'));
+  return'AHS-'+parts.join('-');
+}
+function decState(code){
+  const s=code.toUpperCase().replace(/^AHS-/,'').replace(/-/g,'');
+  try{return JSON.parse(decodeURIComponent(escape(atob(s))));}catch(e){return null;}
+}
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('export-code').textContent).then(()=>{
+    const b=document.getElementById('copy-btn');const m=document.getElementById('copy-msg');
+    b.textContent='Copied!';m.textContent='Code copied.';
+    setTimeout(()=>{b.textContent='Copy';m.textContent='';},2000);
+  }).catch(()=>{document.getElementById('copy-msg').textContent='Copy failed — select code manually.';});
+}
+function restoreCode(){
+  const v=document.getElementById('restore-input').value.trim();
+  const m=document.getElementById('restore-msg');
+  if(!v){m.style.color='var(--danger)';m.textContent='Paste a code first.';return;}
+  const d=decState(v);
+  if(!d||d.stageIdx===undefined){m.style.color='var(--danger)';m.textContent='✗ Invalid code.';return;}
+  STATE=d;save();m.style.color='var(--accent)';m.textContent='✓ Progress restored. Welcome back, Agent.';
+  setTimeout(()=>{if(STATE.complete)showScreen('screen-complete');else{showScreen('screen-stage');renderStage();}},1000);
+}
+function gmSkip(){
+  if(!confirm('Skip to this stage?'))return;
+  const idx=parseInt(document.getElementById('gm-select').value);
+  for(let i=0;i<idx;i++)if(!STATE.completed.includes(HUNT.stages[i].id))STATE.completed.push(HUNT.stages[i].id);
+  STATE.stageIdx=idx;save();showScreen('screen-stage');renderStage();
+}
+
+/* ── BOOT ── */
+function loadScript(src, cb) {
+  const s = document.createElement('script');
+  s.src = src;
+  s.onload = cb || null;
+  s.onerror = cb || null; // don't block on failure
+  document.head.appendChild(s);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load external scripts after DOM is ready
+  loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+  loadScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js');
+
+  // Boot into the right screen
+  try {
+    if (STATE.complete) {
+      showScreen('screen-complete');
+    } else if (STATE.stageIdx > 0 || STATE.completed.length > 0) {
+      showScreen('screen-stage');
+      renderStage();
+    }
+    // else: stay on intro screen (already active in HTML)
+  } catch(e) {
+    console.error('Boot error:', e);
+    // Safe fallback — show intro
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-intro').classList.add('active');
+  }
+});
+</script>
+</body>
+</html>
